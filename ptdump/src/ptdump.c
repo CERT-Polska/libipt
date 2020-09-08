@@ -250,6 +250,7 @@ static int help(const char *name)
 	printf("  --nom-freq <n>            set the nominal frequency (MSR_PLATFORM_INFO[15:8]) to <n>.\n");
 	printf("  --cpuid-0x15.eax          set the value of cpuid[0x15].eax.\n");
 	printf("  --cpuid-0x15.ebx          set the value of cpuid[0x15].ebx.\n");
+    printf("  --cr3 <val>               filter by particular CR3 value (DRAKVUF only).\n");
 	printf("  <ptfile>[:<from>[-<to>]]  load the processor trace data from <ptfile>;\n");
 
 	return 1;
@@ -1352,6 +1353,9 @@ static int print_packet(struct ptdump_buffer *buffer, uint64_t offset,
 	return diag("unknown packet", offset, -pte_bad_opc);
 }
 
+int ignore = 1;
+int inside_psb = 0;
+
 static int dump_one_packet(uint64_t offset, const struct pt_packet *packet,
 			   struct ptdump_tracking *tracking,
 			   const struct ptdump_options *options,
@@ -1359,6 +1363,29 @@ static int dump_one_packet(uint64_t offset, const struct pt_packet *packet,
 {
 	struct ptdump_buffer buffer;
 	int errcode;
+
+    if (packet->type == ppt_psb)
+    {
+        inside_psb = 1;
+    }
+
+    if (packet->type == ppt_ptw)
+    {
+        if ((packet->payload.ptw.payload >> 32) == 0xC3000000)
+        {
+            ignore = ((packet->payload.ptw.payload & 0xFFFFFFFF) != config->cr3_filter);
+        }
+    }
+
+    if (config->cr3_filter && ignore && !inside_psb)
+    {
+        return 0;
+    }
+
+    if (packet->type == ppt_psbend)
+    {
+        inside_psb = 0;
+    }
 
 	memset(&buffer, 0, sizeof(buffer));
 
@@ -1876,6 +1903,11 @@ static int process_args(int argc, char *argv[],
 		} else if (strcmp(argv[idx], "--cpuid-0x15.ebx") == 0) {
 			if (!get_arg_uint32(&config->cpuid_0x15_ebx,
 					    "--cpuid-0x15.ebx", argv[++idx],
+					    argv[0]))
+				return -1;
+        } else if (strcmp(argv[idx], "--cr3") == 0) {
+			if (!get_arg_uint32(&config->cr3_filter,
+					    "--cr3", argv[++idx],
 					    argv[0]))
 				return -1;
 		} else
