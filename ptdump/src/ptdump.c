@@ -1382,6 +1382,11 @@ static int dump_one_packet(uint64_t offset, const struct pt_packet *packet,
         return 0;
     }
 
+    if (packet->type == ppt_fup && inside_psb && ignore)
+    {
+        return 0;
+    }
+
     if (packet->type == ppt_psbend)
     {
         inside_psb = 0;
