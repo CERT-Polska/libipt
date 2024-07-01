@@ -1216,6 +1216,8 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					if (st == ppt_tip || st == ppt_tip_pge || st == ppt_tip_pgd || st == ppt_fup)
 					{
 						printf("found2: %lx %lx\n", ptdec->ip, ptdec->evdec.ip.ip);
+						status = pt_blk_next(ptdec, &block, sizeof(block));
+
 						status = 0;
 					}
 					else if (st == -pte_eos)
