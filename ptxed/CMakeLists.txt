@@ -25,8 +25,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set(XED_INCLUDE "/usr/local/include/xed" CACHE PATH "")
-set(XED_LIBDIR  "/home/drakgrz/tmp/iptbuild/xed/kits/xed-install-base-2024-05-17-lin-x86-64" CACHE PATH "")
+set(XED_INCLUDE "" CACHE PATH "")
+set(XED_LIBDIR  "" CACHE PATH "")
 
 # set(CMAKE_BUILD_TYPE Debug)
 
