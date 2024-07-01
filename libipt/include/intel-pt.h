@@ -549,6 +549,9 @@ struct pt_config {
 
 	/** The address filter configuration. */
 	struct pt_conf_addr_filter addr_filter;
+
+	/** For CR3 filtering (DRAKVUF only). */
+	uint32_t cr3_filter;
 };
 
 
