@@ -1158,6 +1158,14 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					debug_print(3, status, __func__);
 					break;
 				}
+				else if (status == -pte_bad_status_update)
+				{
+					break;
+				}
+				else if (status == -pte_bad_context)
+				{
+					break;
+				}
 			}
 
 			if (status & pts_eos) {
@@ -1216,6 +1224,7 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					if (st == ppt_tip || st == ppt_tip_pge || st == ppt_tip_pgd || st == ppt_fup)
 					{
 						printf("found2: %lx %lx\n", ptdec->ip, ptdec->evdec.ip.ip);
+						// to adjust block size
 						status = pt_blk_next(ptdec, &block, sizeof(block));
 
 						status = 0;
@@ -1229,13 +1238,25 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					{
 						break;
 					}
-					else if (status == -pte_internal)
-					{
-						break;
-					}
+					// else
+					// {
+					// 	break;
+					// }
 
 				}
-				else
+				else if (status == -pte_internal)
+				{
+					break;
+				}
+				// else
+				// {
+				// 	break;
+				// }
+				else if (status == -pte_bad_status_update)
+				{
+					break;
+				}
+				else if (status == -pte_bad_context)
 				{
 					break;
 				}
