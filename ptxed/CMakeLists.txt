@@ -25,12 +25,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-set(XED_INCLUDE "" CACHE PATH "")
-set(XED_LIBDIR  "" CACHE PATH "")
+set(XED_INCLUDE "/usr/local/include/xed" CACHE PATH "")
+set(XED_LIBDIR  "/home/drakgrz/tmp/iptbuild/xed/kits/xed-install-base-2024-05-17-lin-x86-64" CACHE PATH "")
+
+set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(
   include
   ../libipt/internal/include
+  ../libipt/src/debug
 )
 
 include_directories(SYSTEM
@@ -41,17 +44,31 @@ link_directories(
   ${XED_LIBDIR}
 )
 
+set(DEBUG_FILES
+  ../libipt/src/debug/debug.c
+  # ../libipt/src/pt_packet_decoder.c
+  src/ptxed-recover.c
+)
+
 set(PTXED_FILES
   src/ptxed.c
   ../libipt/src/pt_cpu.c
 )
+
+# if (CMAKE_HOST_UNIX)
+#   set(PTXED_FILES ${PTXED_FILES} ${DEBUG_FILES} ../libipt/src/posix/pt_cpuid.c)
+# endif (CMAKE_HOST_UNIX)
+
+# if (CMAKE_HOST_WIN32)
+#   set(PTXED_FILES ${PTXED_FILES} ../libipt/src/windows/pt_cpuid.c)
+# endif (CMAKE_HOST_WIN32)
 
 if (FEATURE_ELF)
   set(PTXED_FILES ${PTXED_FILES} src/load_elf.c)
 endif (FEATURE_ELF)
 
 add_executable(ptxed
-  ${PTXED_FILES}
+  ${PTXED_FILES} ${DEBUG_FILES}
 )
 target_link_libraries(ptxed libipt)
 target_link_libraries(ptxed xed)

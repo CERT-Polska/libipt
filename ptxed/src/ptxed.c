@@ -48,134 +48,139 @@
 
 #include <xed-interface.h>
 
+#include "debug.h"
+#include "pt_block_decoder.h"
+#include "pt_opcodes.h"
+// #include "pt_packet_decoder.h"
+#include "ptxed-recover.h"
 
-/* The type of decoder to be used. */
-enum ptxed_decoder_type {
-	pdt_insn_decoder,
-	pdt_block_decoder
-};
+// /* The type of decoder to be used. */
+// enum ptxed_decoder_type {
+// 	pdt_insn_decoder,
+// 	pdt_block_decoder
+// };
 
-/* The decoder to use. */
-struct ptxed_decoder {
-	/* The decoder type. */
-	enum ptxed_decoder_type type;
+// /* The decoder to use. */
+// struct ptxed_decoder {
+// 	/* The decoder type. */
+// 	enum ptxed_decoder_type type;
 
-	/* The actual decoder. */
-	union {
-		/* If @type == pdt_insn_decoder */
-		struct pt_insn_decoder *insn;
+// 	/* The actual decoder. */
+// 	union {
+// 		/* If @type == pdt_insn_decoder */
+// 		struct pt_insn_decoder *insn;
 
-		/* If @type == pdt_block_decoder */
-		struct pt_block_decoder *block;
-	} variant;
+// 		/* If @type == pdt_block_decoder */
+// 		struct pt_block_decoder *block;
+// 	} variant;
 
-	/* Decoder-specific configuration.
-	 *
-	 * We use a set of structs to store the configuration for multiple
-	 * decoders.
-	 *
-	 * - block decoder.
-	 */
-	struct {
-		/* A collection of decoder-specific flags. */
-		struct pt_conf_flags flags;
-	} block;
+// 	/* Decoder-specific configuration.
+// 	 *
+// 	 * We use a set of structs to store the configuration for multiple
+// 	 * decoders.
+// 	 *
+// 	 * - block decoder.
+// 	 */
+// 	struct {
+// 		/* A collection of decoder-specific flags. */
+// 		struct pt_conf_flags flags;
+// 	} block;
 
-	/* - instruction flow decoder. */
-	struct {
-		/* A collection of decoder-specific flags. */
-		struct pt_conf_flags flags;
-	} insn;
+// 	/* - instruction flow decoder. */
+// 	struct {
+// 		/* A collection of decoder-specific flags. */
+// 		struct pt_conf_flags flags;
+// 	} insn;
 
 
-	/* The image section cache. */
-	struct pt_image_section_cache *iscache;
+// 	/* The image section cache. */
+// 	struct pt_image_section_cache *iscache;
 
-#if defined(FEATURE_SIDEBAND)
-	/* The sideband session. */
-	struct pt_sb_session *session;
+// #if defined(FEATURE_SIDEBAND)
+// 	/* The sideband session. */
+// 	struct pt_sb_session *session;
 
-#if defined(FEATURE_PEVENT)
-	/* The perf event sideband decoder configuration. */
-	struct pt_sb_pevent_config pevent;
-#endif /* defined(FEATURE_PEVENT) */
-#endif /* defined(FEATURE_SIDEBAND) */
-};
+// #if defined(FEATURE_PEVENT)
+// 	/* The perf event sideband decoder configuration. */
+// 	struct pt_sb_pevent_config pevent;
+// #endif /* defined(FEATURE_PEVENT) */
+// #endif /* defined(FEATURE_SIDEBAND) */
+// };
 
-/* A collection of options. */
-struct ptxed_options {
-#if defined(FEATURE_SIDEBAND)
-	/* Sideband dump flags. */
-	uint32_t sb_dump_flags;
-#endif
-	/* Do not print the instruction. */
-	uint32_t dont_print_insn:1;
+// /* A collection of options. */
+// struct ptxed_options {
+// #if defined(FEATURE_SIDEBAND)
+// 	/* Sideband dump flags. */
+// 	uint32_t sb_dump_flags;
+// #endif
+// 	/* Do not print the instruction. */
+// 	uint32_t dont_print_insn:1;
 
-	/* Remain as quiet as possible - excluding error messages. */
-	uint32_t quiet:1;
+// 	/* Remain as quiet as possible - excluding error messages. */
+// 	uint32_t quiet:1;
 
-	/* Print statistics (overrides quiet). */
-	uint32_t print_stats:1;
+// 	/* Print statistics (overrides quiet). */
+// 	uint32_t print_stats:1;
 
-	/* Print information about section loads and unloads. */
-	uint32_t track_image:1;
+// 	/* Print information about section loads and unloads. */
+// 	uint32_t track_image:1;
 
-	/* Track blocks in the output.
-	 *
-	 * This only applies to the block decoder.
-	 */
-	uint32_t track_blocks:1;
+// 	/* Track blocks in the output.
+// 	 *
+// 	 * This only applies to the block decoder.
+// 	 */
+// 	uint32_t track_blocks:1;
 
-	/* Print in AT&T format. */
-	uint32_t att_format:1;
+// 	/* Print in AT&T format. */
+// 	uint32_t att_format:1;
 
-	/* Print the offset into the trace file. */
-	uint32_t print_offset:1;
+// 	/* Print the offset into the trace file. */
+// 	uint32_t print_offset:1;
 
-	/* Print the current timestamp. */
-	uint32_t print_time:1;
+// 	/* Print the current timestamp. */
+// 	uint32_t print_time:1;
 
-	/* Print the raw bytes for an insn. */
-	uint32_t print_raw_insn:1;
+// 	/* Print the raw bytes for an insn. */
+// 	uint32_t print_raw_insn:1;
 
-	/* Perform checks. */
-	uint32_t check:1;
+// 	/* Perform checks. */
+// 	uint32_t check:1;
 
-	/* Print the time stamp of events. */
-	uint32_t print_event_time:1;
+// 	/* Print the time stamp of events. */
+// 	uint32_t print_event_time:1;
 
-	/* Print the ip of events. */
-	uint32_t print_event_ip:1;
+// 	/* Print the ip of events. */
+// 	uint32_t print_event_ip:1;
 
-#if defined(FEATURE_SIDEBAND)
-	/* Print sideband warnings. */
-	uint32_t print_sb_warnings:1;
-#endif
-};
+// #if defined(FEATURE_SIDEBAND)
+// 	/* Print sideband warnings. */
+// 	uint32_t print_sb_warnings:1;
+// #endif
+// };
 
-/* A collection of flags selecting which stats to collect/print. */
-enum ptxed_stats_flag {
-	/* Collect number of instructions. */
-	ptxed_stat_insn		= (1 << 0),
+// /* A collection of flags selecting which stats to collect/print. */
+// enum ptxed_stats_flag {
+// 	/* Collect number of instructions. */
+// 	ptxed_stat_insn		= (1 << 0),
 
-	/* Collect number of blocks. */
-	ptxed_stat_blocks	= (1 << 1)
-};
+// 	/* Collect number of blocks. */
+// 	ptxed_stat_blocks	= (1 << 1)
+// };
 
-/* A collection of statistics. */
-struct ptxed_stats {
-	/* The number of instructions. */
-	uint64_t insn;
+// /* A collection of statistics. */
+// struct ptxed_stats {
+// 	/* The number of instructions. */
+// 	uint64_t insn;
 
-	/* The number of blocks.
-	 *
-	 * This only applies to the block decoder.
-	 */
-	uint64_t blocks;
+// 	/* The number of blocks.
+// 	 *
+// 	 * This only applies to the block decoder.
+// 	 */
+// 	uint64_t blocks;
 
-	/* A collection of flags saying which statistics to collect/print. */
-	uint32_t flags;
-};
+// 	/* A collection of flags saying which statistics to collect/print. */
+// 	uint32_t flags;
+// };
 
 static int ptxed_have_decoder(const struct ptxed_decoder *decoder)
 {
@@ -1749,8 +1754,10 @@ static void print_block(struct ptxed_decoder *decoder,
 	}
 
 	/* Decode should have brought us to @block->end_ip. */
-	if (ip != block->end_ip)
+	if (ip != block->end_ip){
+		printf("nosync2\n");
 		diagnose(decoder, ip, "reconstruct error", -pte_nosync);
+		}
 }
 
 static void check_block(const struct pt_block *block,
@@ -1879,6 +1886,11 @@ static void decode_block(struct ptxed_decoder *decoder,
 	offset = 0ull;
 	sync = 0ull;
 	time = 0ull;
+
+	struct pt_block_decoder *ptdec_cpy = malloc(sizeof(*ptdec_cpy));
+	int err = sync_pt_block_decoder(ptdec, ptdec_cpy);
+	struct pt_packet_decoder* pkt_dec = init_pkt_decoder(&ptdec->evdec.pacdec.config, offset);
+
 	for (;;) {
 		struct pt_block block;
 		int status;
@@ -1886,8 +1898,9 @@ static void decode_block(struct ptxed_decoder *decoder,
 		/* Initialize IP and ninsn - we use it for error reporting. */
 		block.ip = 0ull;
 		block.ninsn = 0u;
-
+		
 		status = pt_blk_sync_forward(ptdec);
+
 		if (status < 0) {
 			uint64_t new_sync;
 			int errcode;
@@ -1913,9 +1926,13 @@ static void decode_block(struct ptxed_decoder *decoder,
 
 		for (;;) {
 			status = drain_events_block(decoder, &time, status,
-						    options);
+								options);
+
 			if (status < 0)
+			{
+				pt_decode_block_recover(ptdec, &block, offset, pkt_dec, time, decoder, options, iscache, stats, ptdec_cpy);
 				break;
+			}
 
 			if (status & pts_eos) {
 				if (!(status & pts_ip_suppressed) &&
@@ -1930,11 +1947,13 @@ static void decode_block(struct ptxed_decoder *decoder,
 				int errcode;
 
 				errcode = pt_blk_get_offset(ptdec, &offset);
+
 				if (errcode < 0)
 					break;
 			}
 
 			status = pt_blk_next(ptdec, &block, sizeof(block));
+
 			if (status < 0) {
 				/* Even in case of errors, we may have succeeded
 				 * in decoding some instructions.
@@ -1946,28 +1965,38 @@ static void decode_block(struct ptxed_decoder *decoder,
 					}
 
 					if (!options->quiet)
+					{
 						print_block(decoder, &block,
 							    options, stats,
 							    offset, time);
+					}
 
 					if (options->check)
+					{
 						check_block(&block, iscache,
 							    offset);
+					}
 				}
+
+				pt_decode_block_recover(ptdec, &block, offset, pkt_dec, time, decoder, options, iscache, stats, ptdec_cpy);
 				break;
+
 			}
 
-			if (stats) {
+			if (stats)
+			{
 				stats->insn += block.ninsn;
 				stats->blocks += 1;
 			}
-
 			if (!options->quiet)
+			{
 				print_block(decoder, &block, options, stats,
 					    offset, time);
-
+			}
 			if (options->check)
+			{
 				check_block(&block, iscache, offset);
+			}
 		}
 
 		/* We shouldn't break out of the loop without an error. */
@@ -1980,6 +2009,9 @@ static void decode_block(struct ptxed_decoder *decoder,
 
 		diagnose_block(decoder, "error", status, &block);
 	}
+
+	pt_pkt_free_decoder(pkt_dec);
+    pt_blk_free_decoder(ptdec_cpy);
 }
 
 static void decode(struct ptxed_decoder *decoder,
@@ -1993,10 +2025,12 @@ static void decode(struct ptxed_decoder *decoder,
 
 	switch (decoder->type) {
 	case pdt_insn_decoder:
+		printf("using INSTRUCTION_DECODER\n");
 		decode_insn(decoder, options, stats);
 		break;
 
 	case pdt_block_decoder:
+		printf("using BLOCK_DECODER\n");
 		decode_block(decoder, options, stats);
 		break;
 	}
