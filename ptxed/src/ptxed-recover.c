@@ -1108,7 +1108,7 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
  							struct ptxed_stats *stats,
 							struct pt_block_decoder *ptdec)
 {
-	printf("%s enter #######################################################################\n", __func__);
+	printf("%s ####################################################################### enter\n", __func__);
 
 	int status;
 	int err;
@@ -1129,7 +1129,6 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 
 			if (status < 0)
 			{
-				debug_print(1, status, __func__);
 				if (status == -pte_nomap || status == -pte_bad_query)
 				{
 					int st = handle_no_map(ptdec, &block, &offset, pkt_dec);
@@ -1137,6 +1136,7 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					{
 						printf("found1: %lx %lx\n", ptdec->ip, ptdec->evdec.ip.ip);
 						status = 0;
+						// no difference
 						// continue;
 					}
 					else if (st == -pte_eos)
@@ -1155,7 +1155,6 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 				}
 				else if (status == -pte_internal)
 				{
-					debug_print(3, status, __func__);
 					break;
 				}
 				else if (status == -pte_bad_status_update)
@@ -1211,10 +1210,8 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 							    offset);
 					}
 				}
-				debug_print(2, status, __func__);
 
 				if (status == -pte_nomap || status == -pte_bad_query)
-				// if (status == -pte_nomap)
 				{
 
 					uint64_t new_ip;
@@ -1248,10 +1245,6 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 				{
 					break;
 				}
-				// else
-				// {
-				// 	break;
-				// }
 				else if (status == -pte_bad_status_update)
 				{
 					break;
@@ -1279,7 +1272,7 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 		}
 
     ret:
-	printf("%s exit #######################################################################\n", __func__);
+	printf("%s ####################################################################### exit\n", __func__);
 
     return;
 }

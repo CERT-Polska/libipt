@@ -1888,7 +1888,7 @@ static void decode_block(struct ptxed_decoder *decoder,
 	time = 0ull;
 
 	struct pt_block_decoder *ptdec_cpy = malloc(sizeof(*ptdec_cpy));
-	int err = sync_pt_block_decoder(ptdec, ptdec_cpy);
+	sync_pt_block_decoder(ptdec, ptdec_cpy);
 	struct pt_packet_decoder* pkt_dec = init_pkt_decoder(&ptdec->evdec.pacdec.config, offset);
 
 	for (;;) {

@@ -13,7 +13,10 @@ void print_pt_block_decoder(struct pt_block_decoder *ptdec)
 
 void print_section(struct pt_section_list* section)
 {
-	printf("section: %s, vaddr: %lx, size: %lx\n", section->section.section->filename, section->section.vaddr, section->section.size);
+	printf("section: %s, vaddr: %lx, size: %lx\n",
+		section->section.section->filename,
+		section->section.vaddr,
+		section->section.size);
 	return;
 }
 
@@ -75,19 +78,28 @@ void print_pkt_type(struct pt_packet* packet)
 			printf("packet_type: ppt_fup, code: %d\n", packet->type);
 			break;
 		case ppt_tip:
-			printf("packet_type: ppt_tip, code: %d, ip: %lx\n", packet->type, packet->payload.ip.ip);
+			printf("packet_type: ppt_tip, code: %d, ip: %lx\n",
+				packet->type,
+				packet->payload.ip.ip);
 			break;
 		case ppt_tip_pge:
-			printf("packet_type: ppt_tip_pge, code: %d, ip: %lx\n", packet->type, packet->payload.ip.ip);
+			printf("packet_type: ppt_tip_pge, code: %d, ip: %lx\n",
+				packet->type,
+				packet->payload.ip.ip);
 			break;
 		case ppt_tip_pgd:
-			printf("packet_type: ppt_tip_pgd, code: %d, ip: %lx\n", packet->type, packet->payload.ip.ip);
+			printf("packet_type: ppt_tip_pgd, code: %d, ip: %lx\n",
+				packet->type,
+				packet->payload.ip.ip);
 			break;
 		case ppt_tnt_8:
-			printf("packet_type: ppt_tnt_8, code: %d, payload: %lx\n", packet->type, packet->payload.tnt.payload);
+			printf("packet_type: ppt_tnt_8, code: %d, payload: %lx\n",
+				packet->type,
+				packet->payload.tnt.payload);
 			break;
 		case ppt_tnt_64:
-			printf("packet_type: ppt_tnt_64, code: %d, payload: %lx\n", packet->type, packet->payload.tnt.payload);
+			printf("packet_type: ppt_tnt_64, code: %d, payload: %lx\n",
+				packet->type, packet->payload.tnt.payload);
 			break;
 		case ppt_mode:
 			printf("packet_type: ppt_mode, code: %d\n", packet->type);
@@ -190,19 +202,29 @@ void print_n_packets(struct pt_config *config, uint64_t offset, int n)
 			printf("packet_type: ppt_fup, code: %d\n", packet.type);
 			break;
 		case ppt_tip:
-			printf("packet_type: ppt_tip, code: %d, ip: %lx\n", packet.type, packet.payload.ip.ip);
+			printf("packet_type: ppt_tip, code: %d, ip: %lx\n",
+				packet.type,
+				packet.payload.ip.ip);
 			break;
 		case ppt_tip_pge:
-			printf("packet_type: ppt_tip_pge, code: %d, ip: %lx\n", packet.type, packet.payload.ip.ip);
+			printf("packet_type: ppt_tip_pge, code: %d, ip: %lx\n",
+				packet.type,
+				packet.payload.ip.ip);
 			break;
 		case ppt_tip_pgd:
-			printf("packet_type: ppt_tip_pgd, code: %d, ip: %lx\n", packet.type, packet.payload.ip.ip);
+			printf("packet_type: ppt_tip_pgd, code: %d, ip: %lx\n",
+				packet.type,
+				packet.payload.ip.ip);
 			break;
 		case ppt_tnt_8:
-			printf("packet_type: ppt_tnt_8, code: %d, payload: %lx\n", packet.type, packet.payload.tnt.payload);
+			printf("packet_type: ppt_tnt_8, code: %d, payload: %lx\n",
+				packet.type,
+				packet.payload.tnt.payload);
 			break;
 		case ppt_tnt_64:
-			printf("packet_type: ppt_tnt_64, code: %d, payload: %lx\n", packet.type, packet.payload.tnt.payload);
+			printf("packet_type: ppt_tnt_64, code: %d, payload: %lx\n",
+				packet.type,
+				packet.payload.tnt.payload);
 			break;
 		case ppt_mode:
 			printf("packet_type: ppt_mode, code: %d\n", packet.type);
@@ -376,8 +398,7 @@ static int next_packet(struct pt_packet_decoder* pkt_dec, struct pt_packet* pack
 	return size;
 }
 
-uint64_t search_prev_full_tip(
-							struct pt_block_decoder *ptdec,
+uint64_t search_prev_full_tip(struct pt_block_decoder *ptdec,
 							uint64_t offset,
 							const uint8_t* pos)
 {
@@ -414,11 +435,10 @@ uint64_t search_prev_full_tip(
 	return full_tip_ip;
 }
 
-int handle_tip(
-			struct pt_block_decoder *ptdec,
-			uint64_t new_ip,
-			struct pt_block* block,
-			uint64_t offset)
+int handle_tip(struct pt_block_decoder *ptdec,
+				uint64_t new_ip,
+				struct pt_block* block,
+				uint64_t offset)
 {
 	uint64_t section_va;
 	const uint8_t* pos = ptdec->evdec.pacdec.pos;
@@ -426,15 +446,15 @@ int handle_tip(
 	if ((new_ip & 0xffff) == new_ip)
 	{
 		uint64_t last_tip_ip = search_prev_full_tip(ptdec, offset, pos);
-		printf("last_tip_ip %lx\n", last_tip_ip);
 
 		if (!last_tip_ip)
 		{
-			printf("no_last_tip_ip\n");
 			return -1;
 		}
+
 		new_ip = (last_tip_ip & 0xffffffffffff0000) | new_ip;
 	}
+
 	ptdec->evdec.ip.ip = new_ip;
 	ptdec->ip = new_ip;
 	block->end_ip = new_ip;
@@ -465,7 +485,6 @@ int handle_no_map(struct pt_block_decoder *ptdec,
 	uint64_t errcode;
 
 	*offset = ptdec->evdec.pacdec.pos - ptdec->evdec.pacdec.config.begin;
-	printf("info ptdec->evdec.pacdec.pos %p ptdec->evdec.pacdec.config.begin %p ptdec->ip %lx ptdec->evdec.ip.ip %lx ptdec->evdec.pacdec.sync %p\n", ptdec->evdec.pacdec.pos, ptdec->evdec.pacdec.config.begin, ptdec->ip, ptdec->evdec.ip.ip, ptdec->evdec.pacdec.sync);
 
 	errcode = pt_pkt_sync_set(pkt_dec, *offset);
 	if (errcode < 0)
@@ -488,8 +507,8 @@ int handle_no_map(struct pt_block_decoder *ptdec,
 		switch (status)
 		{
 		case ppt_psb:
-			printf("psb %p\n", ptdec->evdec.pacdec.pos);
-			ptdec->evdec.pacdec.sync = ptdec->evdec.pacdec.pos;
+			// no difference
+			// ptdec->evdec.pacdec.sync = ptdec->evdec.pacdec.pos;
 			return status;
 		case ppt_fup:
 		case ppt_tip:
