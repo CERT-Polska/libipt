@@ -144,7 +144,7 @@ struct ptxed_stats {
 	uint32_t flags;
 };
 
-
+struct pt_packet_decoder* init_pkt_decoder(const struct pt_config *config, uint64_t offset);
 void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 							struct pt_block* block_orig,
 							uint64_t offset_orig,

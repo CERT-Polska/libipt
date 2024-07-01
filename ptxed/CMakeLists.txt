@@ -28,7 +28,7 @@
 set(XED_INCLUDE "/usr/local/include/xed" CACHE PATH "")
 set(XED_LIBDIR  "/home/drakgrz/tmp/iptbuild/xed/kits/xed-install-base-2024-05-17-lin-x86-64" CACHE PATH "")
 
-set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(
   include
@@ -46,7 +46,6 @@ link_directories(
 
 set(DEBUG_FILES
   ../libipt/src/debug/debug.c
-  # ../libipt/src/pt_packet_decoder.c
   src/ptxed-recover.c
 )
 

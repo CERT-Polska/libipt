@@ -961,7 +961,253 @@ static int drain_events_block(struct ptxed_decoder *decoder, uint64_t *time,
 
 // todo until here
 
-int sync_pt_event_queue(struct pt_event_queue* src, struct pt_event_queue* dst)
+static uint64_t handle_packet(struct pt_packet *packet, uint64_t* new_ip)
+{
+	uint64_t status = packet->type;
+
+	switch (packet->type)
+	{
+	case ppt_tip:
+		*new_ip = packet->payload.ip.ip;
+		break;
+	case ppt_tip_pge:
+		*new_ip = packet->payload.ip.ip;
+		break;
+	case ppt_tip_pgd:
+		// todo
+		// *new_ip = packet->payload.ip.ip;
+		break;
+	case ppt_tnt_64:
+		break;
+	case ppt_tnt_8:
+		break;
+	case ppt_fup:
+		*new_ip = packet->payload.ip.ip;
+		break;
+	case ppt_psb:
+		break;
+	case ppt_psbend:
+		break;
+	case ppt_pad:
+		break;
+	case ppt_ptw:
+		break;
+	case ppt_cbr:
+		break;
+	default:
+		status = -1;
+		break;
+	}
+
+	return status;
+}
+
+static uint64_t check_sections(struct pt_block_decoder *ptdec, uint64_t ip)
+{
+	struct pt_section_list* section = ptdec->image->sections;
+	struct pt_section_list* init_section = ptdec->image->sections;
+
+	while (section != NULL)
+	{
+		if (section->section.vaddr <= ip && ip < (section->section.vaddr + section->section.size))
+		{
+			ptdec->scache.isid = section->isid;
+			ptdec->scache.msec = section->section;
+			return section->section.vaddr;
+		}
+		section = section->next;
+	}
+
+	return 0;
+}
+
+struct pt_packet_decoder* init_pkt_decoder(const struct pt_config *config, uint64_t offset)
+{
+	struct pt_packet_decoder *pkt_dec;
+	int errcode;
+
+	pkt_dec = pt_pkt_alloc_decoder(config);
+	if (!pkt_dec)
+	{
+		printf("failed to allocate decoder1\n");
+		return NULL;
+	}
+
+	errcode = pt_pkt_sync_set(pkt_dec, offset);
+	if (errcode < 0)
+	{
+		printf("failed to sync decoder\n");
+		return NULL;
+	}
+	
+	return pkt_dec;
+}
+
+static int next_packet(struct pt_packet_decoder* pkt_dec, struct pt_packet* packet)
+{
+	int size = pt_pkt_next(pkt_dec, packet, sizeof(*packet));
+
+	if (size < 0)
+	{
+		switch (size)
+		{
+		case -pte_bad_opc:
+			printf("pte_bad_opc\n");
+			break;
+		case -pte_bad_packet:
+			printf("pte_bad_packet\n");
+			break;
+		case -pte_eos:
+			printf("pte_eos\n");
+			return -pte_eos;
+		case -pte_invalid:
+			printf("pte_invalid\n");
+			break;
+		case -pte_nosync:
+			printf("pte_nosync\n");
+			break;
+		
+		default:
+			break;
+		}
+
+	}
+	return size;
+}
+
+static uint64_t search_prev_full_tip(struct pt_block_decoder *ptdec,
+							uint64_t offset,
+							const uint8_t* pos)
+{
+	struct pt_packet_decoder* pkt_dec = init_pkt_decoder(&ptdec->evdec.pacdec.config, offset);
+	struct pt_packet packet;
+	int size;
+	uint64_t ip;
+	uint64_t full_tip_ip = 0;
+	uint64_t pkt_type;
+	uint64_t full_tip_mask = 0xffffffff;
+	uint64_t short_tip_mask = 0xfffffff;
+
+	int status = pt_pkt_sync_backward(pkt_dec);
+	if (status < 0)
+	{
+		return status;
+	}
+
+	while (pkt_dec->pos < pos)
+	{
+		size = next_packet(pkt_dec, &packet);
+		pkt_type = handle_packet(&packet, &ip);
+		if (pkt_type == ppt_tip || pkt_type == ppt_tip_pge)
+		{
+			ip = packet.payload.ip.ip;
+			if ((ip & short_tip_mask) != ip)
+			{
+				full_tip_ip = ip;
+			}
+		}
+	}
+
+	pt_pkt_free_decoder(pkt_dec);
+	return full_tip_ip;
+}
+
+static int handle_tip(struct pt_block_decoder *ptdec,
+				uint64_t new_ip,
+				struct pt_block* block,
+				uint64_t offset)
+{
+	uint64_t section_va;
+	const uint8_t* pos = ptdec->evdec.pacdec.pos;
+
+	// todo different tip sizes
+	if ((new_ip & 0xffff) == new_ip)
+	{
+		uint64_t last_tip_ip = search_prev_full_tip(ptdec, offset, pos);
+
+		if (!last_tip_ip)
+		{
+			return -1;
+		}
+
+		new_ip = (last_tip_ip & 0xffffffffffff0000) | new_ip;
+	}
+
+	ptdec->evdec.ip.ip = new_ip;
+	ptdec->ip = new_ip;
+	block->end_ip = new_ip;
+	block->ip = new_ip;
+	block->isid = ptdec->scache.isid;
+
+	if (section_va = check_sections(ptdec, new_ip))
+	{
+		return 1;
+	}
+
+	return -1;
+}
+
+static int handle_no_map(struct pt_block_decoder *ptdec,
+				struct pt_block* block,
+				uint64_t* offset,
+				struct pt_packet_decoder* pkt_dec)
+{
+	struct pt_packet packet;
+
+	int status;
+	int size = 0;
+
+	uint64_t last_ip = ptdec->evdec.ip.ip;
+	uint64_t new_ip = last_ip;
+	uint64_t section_va;
+	uint64_t errcode;
+
+	*offset = ptdec->evdec.pacdec.pos - ptdec->evdec.pacdec.config.begin;
+
+	errcode = pt_pkt_sync_set(pkt_dec, *offset);
+	if (errcode < 0)
+	{
+		printf("failed to sync decoder\n");
+		return -1;
+	}
+
+	while (1)
+	{
+		size = next_packet(&ptdec->evdec.pacdec, &packet);
+
+		if (size < 0)
+		{
+			return size;
+		}
+
+		status = handle_packet(&packet, &new_ip);
+
+		switch (status)
+		{
+		case ppt_psb:
+			// no difference
+			// ptdec->evdec.pacdec.sync = ptdec->evdec.pacdec.pos;
+			return status;
+		case ppt_fup:
+		case ppt_tip:
+		case ppt_tip_pgd:
+		case ppt_tip_pge:
+			if (handle_tip(ptdec, new_ip, block, *offset) > 0)
+			{
+				return status;
+			}
+			break;
+		case -1:
+			break;
+		default:
+			break;
+		}
+	}
+
+	return status;
+}
+
+static int sync_pt_event_queue(struct pt_event_queue* src, struct pt_event_queue* dst)
 {
 	dst->begin = src->begin;
 	dst->end = src->end;
@@ -977,7 +1223,7 @@ int sync_pt_event_queue(struct pt_event_queue* src, struct pt_event_queue* dst)
 	return 0;
 }
 
-int sync_pt_packet_decoder(struct pt_packet_decoder* src, struct pt_packet_decoder*dst)
+static int sync_pt_packet_decoder(struct pt_packet_decoder* src, struct pt_packet_decoder*dst)
 {
 	dst->config = src->config;
 	dst->pos = src->pos;
@@ -986,7 +1232,7 @@ int sync_pt_packet_decoder(struct pt_packet_decoder* src, struct pt_packet_decod
 	return 0;
 }
 
-int	sync_pt_event_decoder(struct pt_event_decoder* evdec_src, struct pt_event_decoder* evdec_dst)
+static int sync_pt_event_decoder(struct pt_event_decoder* evdec_src, struct pt_event_decoder* evdec_dst)
 {
 	evdec_dst->bound = evdec_src->bound;
 	evdec_dst->csd = evdec_src->csd;
@@ -1011,7 +1257,7 @@ int	sync_pt_event_decoder(struct pt_event_decoder* evdec_src, struct pt_event_de
 	return 0;
 }
 
-int sync_retstack(struct pt_retstack* src, struct pt_retstack* dst)
+static int sync_retstack(struct pt_retstack* src, struct pt_retstack* dst)
 {
 	dst->bottom = src->bottom;
 
@@ -1026,7 +1272,7 @@ int sync_retstack(struct pt_retstack* src, struct pt_retstack* dst)
 	return 0;
 }
 
-int sync_scache(struct pt_msec_cache* src, struct pt_msec_cache* dst)
+static int sync_scache(struct pt_msec_cache* src, struct pt_msec_cache* dst)
 {
 	dst->isid = src->isid;
 	dst->msec = src->msec;
@@ -1034,7 +1280,7 @@ int sync_scache(struct pt_msec_cache* src, struct pt_msec_cache* dst)
 	return 0;
 }
 
-int copy_pt_block(struct pt_block* src, struct pt_block* dst)
+static int copy_pt_block(struct pt_block* src, struct pt_block* dst)
 {
 	dst->end_ip = src->end_ip;
 	dst->iclass = src->iclass;
@@ -1108,8 +1354,6 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
  							struct ptxed_stats *stats,
 							struct pt_block_decoder *ptdec)
 {
-	printf("%s ####################################################################### enter\n", __func__);
-
 	int status;
 	int err;
 	uint64_t time = time_orig;
@@ -1132,9 +1376,9 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 				if (status == -pte_nomap || status == -pte_bad_query)
 				{
 					int st = handle_no_map(ptdec, &block, &offset, pkt_dec);
+
 					if (st == ppt_tip || st == ppt_tip_pge || st == ppt_tip_pgd || st == ppt_fup)
 					{
-						printf("found1: %lx %lx\n", ptdec->ip, ptdec->evdec.ip.ip);
 						status = 0;
 						// no difference
 						// continue;
@@ -1220,7 +1464,6 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 
 					if (st == ppt_tip || st == ppt_tip_pge || st == ppt_tip_pgd || st == ppt_fup)
 					{
-						printf("found2: %lx %lx\n", ptdec->ip, ptdec->evdec.ip.ip);
 						// to adjust block size
 						status = pt_blk_next(ptdec, &block, sizeof(block));
 
@@ -1228,18 +1471,12 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					}
 					else if (st == -pte_eos)
 					{
-						printf("handle1 eos\n");
 						break;
 					}
 					else if (st == ppt_psb)
 					{
 						break;
 					}
-					// else
-					// {
-					// 	break;
-					// }
-
 				}
 				else if (status == -pte_internal)
 				{
@@ -1272,7 +1509,6 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 		}
 
     ret:
-	printf("%s ####################################################################### exit\n", __func__);
 
     return;
 }
