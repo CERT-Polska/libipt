@@ -435,6 +435,7 @@ int handle_tip(
 		}
 		new_ip = (last_tip_ip & 0xffffffffffff0000) | new_ip;
 	}
+	ptdec->evdec.ip.ip = new_ip;
 	ptdec->ip = new_ip;
 	block->end_ip = new_ip;
 	block->ip = new_ip;
@@ -464,6 +465,14 @@ int handle_no_map(struct pt_block_decoder *ptdec,
 	uint64_t errcode;
 
 	*offset = ptdec->evdec.pacdec.pos - ptdec->evdec.pacdec.config.begin;
+	printf("info ptdec->evdec.pacdec.pos %p ptdec->evdec.pacdec.config.begin %p ptdec->ip %lx ptdec->evdec.ip.ip %lx ptdec->evdec.pacdec.sync %p\n", ptdec->evdec.pacdec.pos, ptdec->evdec.pacdec.config.begin, ptdec->ip, ptdec->evdec.ip.ip, ptdec->evdec.pacdec.sync);
+
+	errcode = pt_pkt_sync_set(pkt_dec, *offset);
+	if (errcode < 0)
+	{
+		printf("failed to sync decoder\n");
+		return -1;
+	}
 
 	while (1)
 	{
@@ -479,6 +488,8 @@ int handle_no_map(struct pt_block_decoder *ptdec,
 		switch (status)
 		{
 		case ppt_psb:
+			printf("psb %p\n", ptdec->evdec.pacdec.pos);
+			ptdec->evdec.pacdec.sync = ptdec->evdec.pacdec.pos;
 			return status;
 		case ppt_fup:
 		case ppt_tip:

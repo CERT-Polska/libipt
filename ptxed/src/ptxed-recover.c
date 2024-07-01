@@ -1069,7 +1069,7 @@ int sync_pt_block_decoder(struct pt_block_decoder* ptdec_src, struct pt_block_de
 	ptdec_dst->default_image = ptdec_src->default_image;	// todo check
 	ptdec_dst->enabled = ptdec_src->enabled;
 
-	ptdec_dst->evdec;
+	sync_pt_event_decoder(&ptdec_src->evdec, &ptdec_dst->evdec);
 	
 	ptdec_dst->event = ptdec_src->event;	// todo check
 	ptdec_dst->flags = ptdec_src->flags;	// todo check
@@ -1090,7 +1090,6 @@ int sync_pt_block_decoder(struct pt_block_decoder* ptdec_src, struct pt_block_de
 	ptdec_dst->status = ptdec_src->status;
 	ptdec_dst->tsc = ptdec_src->tsc;
 	
-	sync_pt_event_decoder(&ptdec_src->evdec, &ptdec_dst->evdec);
 	sync_retstack(&ptdec_src->retstack, &ptdec_dst->retstack);
 	sync_scache(&ptdec_src->scache, &ptdec_dst->scache);
 	
@@ -1130,6 +1129,7 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 
 			if (status < 0)
 			{
+				debug_print(1, status, __func__);
 				if (status == -pte_nomap || status == -pte_bad_query)
 				{
 					int st = handle_no_map(ptdec, &block, &offset, pkt_dec);
@@ -1152,6 +1152,11 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					{
 						break;
 					}
+				}
+				else if (status == -pte_internal)
+				{
+					debug_print(3, status, __func__);
+					break;
 				}
 			}
 
@@ -1198,9 +1203,10 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 							    offset);
 					}
 				}
+				debug_print(2, status, __func__);
 
-				// if (status == -pte_nomap || status == -pte_bad_query)
-				if (status == -pte_nomap)
+				if (status == -pte_nomap || status == -pte_bad_query)
+				// if (status == -pte_nomap)
 				{
 
 					uint64_t new_ip;
@@ -1221,11 +1227,15 @@ void pt_decode_block_recover(struct pt_block_decoder *ptdec_orig,
 					{
 						break;
 					}
-					else
+					else if (status == -pte_internal)
 					{
 						break;
 					}
 
+				}
+				else
+				{
+					break;
 				}
 			}
 
